@@ -1,24 +1,35 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, View, Text, TouchableOpacity, FlatList, SafeAreaView, Alert, Platform } from 'react-native';
+import { StyleSheet, Dimensions, View, Text, TouchableOpacity, Modal, FlatList, SafeAreaView, Alert, Platform } from 'react-native';
 import { db } from '../firebaseConfig';
 import { collection, getDocs, query, where, doc, updateDoc, addDoc } from "firebase/firestore";
 import DateTimePicker from '@react-native-community/datetimepicker';
 import moment from 'moment';
 
+
+const { width: screenWidth, height: screenHeight } = Dimensions.get('window')
+
+const sliderWidth = screenWidth
+const sliderHeight = screenHeight
+const itemWidth = screenWidth
+
+
 // Your BookItem component
 const BookItem = ({ book, onSelect }) => {
+
   return (
     <View style={styles.bookItemContainer}>
       <View style={styles.bookInfo}>
         <Text style={styles.bookTitle}>{book.id}</Text>
         <Text style={styles.bookAuthor}>{book.Author}</Text>
       </View>
-      <TouchableOpacity onPress={() => onSelect(book)} style={styles.subscribeButton}>
+      <TouchableOpacity onPress={() => { onSelect(book) }} style={styles.subscribeButton}>
         <Text style={styles.subscribeButtonText}>Borrow</Text>
       </TouchableOpacity>
     </View>
   );
 };
+
+
 
 // Your main component
 const BorrowBooks = ({ navigation }) => {
@@ -26,6 +37,7 @@ const BorrowBooks = ({ navigation }) => {
   const [isDatePickerVisible, setDatePickerVisibility] = useState(false);
   const [selectedBook, setSelectedBook] = useState(null);
   const [date, setDate] = useState(new Date());
+
 
   useEffect(() => {
     const fetchBooks = async () => {
@@ -57,6 +69,7 @@ const BorrowBooks = ({ navigation }) => {
   };
 
   const handleConfirm = (selectedDate) => {
+    setDatePickerVisibility(false)
     if (!selectedBook) {
       Alert.alert("Error", "No book selected.");
       return;
@@ -68,34 +81,37 @@ const BorrowBooks = ({ navigation }) => {
 
   const handleBorrow = async (book, borrowDate, returnDate) => {
     try {
-        const bookRef = doc(db, 'Books', book.id);
-        await updateDoc(bookRef, {
-            Availability: "False",
-            BookNumber: "0",
-        });
+      const bookRef = doc(db, 'Books', book.id);
+      await updateDoc(bookRef, {
+        Availability: "False",
+        BookNumber: "0",
+      });
 
-        const userId = "user_id"; // This should be dynamically determined
-        const userBorrowedBooksRef = collection(db, 'Users', userId, 'borrowedBooks');
-        await addDoc(userBorrowedBooksRef, {
-            bookId: book.id,
-            borrowDate: borrowDate.toISOString(),
-            returnDate: returnDate.toISOString(),
-        });
+      const userId = "user_id"; // This should be dynamically determined
+      const userBorrowedBooksRef = collection(db, 'Users', userId, 'borrowedBooks');
+      await addDoc(userBorrowedBooksRef, {
+        bookId: book.id,
+        borrowDate: borrowDate.toISOString(),
+        returnDate: returnDate.toISOString(),
+      });
 
-        Alert.alert("Success", `You've borrowed ${book.title} until ${returnDate.format("DD MM YYYY")}.`);
-        navigation.navigate('Profile');
+      Alert.alert("Success", `You've borrowed ${book.id} until ${returnDate.format("DD MM YYYY")}.`);
+      navigation.navigate('Profile');
 
-        // Update local state to reflect changes
-        setBooks(prevBooks => prevBooks.map(b => b.id === book.id ? { ...b, Availability: "False" } : b));
+      // Update local state to reflect changes
+      setBooks(prevBooks => prevBooks.map(b => b.id === book.id ? { ...b, Availability: "False" } : b));
     } catch (error) {
-        Alert.alert("Error", "Could not borrow the book. Please try again.");
-        console.error("Error during borrowing process:", error);
+      Alert.alert("Error", "Could not borrow the book. Please try again.");
+      console.error("Error during borrowing process:", error);
     }
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-        {console.log(books)}
+    <View style={styles.container}>
+      <View style={styles.header}>
+        <Text style={styles.headerText}>Borrow Books</Text>
+      </View>
+
       <FlatList
         data={books}
         renderItem={({ item }) => (
@@ -104,15 +120,23 @@ const BorrowBooks = ({ navigation }) => {
         keyExtractor={item => item.id}
       />
       {isDatePickerVisible && (
-        <DateTimePicker
-          value={date}
-          mode="date"
-          display="default"
-          onChange={onChange}
-          minimumDate={new Date()} // Disable past dates
-        />
+        <Modal
+          animationType='fade'
+          transparent={true}
+          visible={isDatePickerVisible}
+          onRequestClose={() => setDatePickerVisibility(false)}>
+          <View style={styles.modalOverlay}>
+            <DateTimePicker
+              value={date}
+              mode="date"
+              display="default"
+              onChange={onChange}
+              minimumDate={new Date()} // Disable past dates
+            />
+          </View>
+        </Modal>
       )}
-    </SafeAreaView>
+    </View>
   );
 };
 
@@ -120,17 +144,48 @@ const BorrowBooks = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8f8f8',
+    backgroundColor: '#e9e4dc'
+
+  },
+  modalOverlay: {
+    width: screenWidth,
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  header: {
+    height: 90,
+    backgroundColor: "#b8860b",
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderBottomRightRadius: 9,
+    borderBottomLeftRadius: 9,
+
+
   },
   bookItemContainer: {
     flexDirection: 'row',
     padding: 20,
     justifyContent: 'space-between',
     alignItems: 'center',
+
+
     borderBottomWidth: 1,
-    borderBottomColor: '#ddd',
+    width: 380,
+    marginLeft: 5,
     borderWidth: 1,
-    borderColor: 'red',
+    borderRadius: 9,
+    marginTop: 9,
+    borderColor: 'green',
+
+  },
+  headerText: {
+    fontFamily: 'Georgia',
+    fontWeight: 'bold',
+    marginTop: 40,
+    fontSize: 20,
+
   },
   bookInfo: {
     flex: 1,
@@ -150,7 +205,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     paddingHorizontal: 20,
     borderRadius: 20,
-    backgroundColor: '#1e90ff',
+    backgroundColor: 'green',
   },
   subscribeButtonText: {
     color: '#fff',

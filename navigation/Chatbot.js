@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import {
-  StyleSheet,
-  SafeAreaView,
-  View,
-  Text,
-  TouchableOpacity,
+    StyleSheet,
+    SafeAreaView,
+    View,
+    Text,
+    TouchableOpacity,
 } from 'react-native';
 import { GiftedChat, InputToolbar, Send } from 'react-native-gifted-chat';
 import axios from 'axios';
@@ -13,32 +13,32 @@ import { db } from '../firebaseConfig';
 
 export default function ChatBot() {
     const [messages, setMessages] = useState([]);
-    const[docData, setData] = useState([])
-    useEffect(()=>{ 
+    const [docData, setData] = useState([])
+    useEffect(() => {
         const fetchData = async () => {
-        try {
-            const docSnap = await getDocs (collection(db, '/Books/'))
-            let data = []
-            docSnap.forEach((doc)=>{
+            try {
+                const docSnap = await getDocs(collection(db, '/Books/'))
+                let data = []
+                docSnap.forEach((doc) => {
 
-                data.push({
+                    data.push({
 
-                    ...doc.data(),
-                    id: doc.id
+                        ...doc.data(),
+                        id: doc.id
+                    })
                 })
-            }) 
-            console.log(data)
-            setData(data)
-        } catch(error){console.log(error)}
+                console.log(data)
+                setData(data)
+            } catch (error) { console.log(error) }
 
-    }
-    fetchData()
-    const interval=setInterval(fetchData, 9000)
-    return ()=>{
+        }
+        fetchData()
+        const interval = setInterval(fetchData, 9000)
+        return () => {
 
-        clearInterval(interval)
-    }
-},[])
+            clearInterval(interval)
+        }
+    }, [])
 
     function renderInputToolbar(props) {
         return <InputToolbar {...props} containerStyle={styles.toolbar} />;
@@ -47,7 +47,7 @@ export default function ChatBot() {
     function renderSend(props) {
         return (
             <Send {...props} containerStyle={styles.sendButton}>
-                <View style={styles.enter}/>
+                <View style={styles.enter} />
             </Send>
         );
     }
@@ -55,7 +55,7 @@ export default function ChatBot() {
     const handleSend = async (newMessages = []) => {
         setMessages(previousMessages => GiftedChat.append(previousMessages, newMessages));
         const messageText = newMessages[0].text.toLowerCase();
-        const serializedDocData = JSON.stringify(docData); 
+        const serializedDocData = JSON.stringify(docData);
         try {
             const response = await axios.post('https://api.openai.com/v1/engines/gpt-3.5-turbo-instruct/completions', {
                 prompt: `This file is the json file “${serializedDocData}” that contains details of books in the library. Each {} represents a new book entry with fields for the author's name, availability status(True or False) , book number (shelf location), and the book ID (book name). As BookWand's chatbot, you should use this data to inform users accurately. If a user queries about a book, first check if the book is in the provided file. If the book is listed in the file as false under availability or if the book is not found in the file, respond with "Book not Available." Else, return with the information of the book. For any questions regarding the book's content such as genre, ratings, synopsis, or comparisons, provide answers if the data is available. If the user wants to borrow a book, respond with the location of the book as written on the file and ask the user to redirect to the Borrow books page. The users query is: “${messageText}”`,
@@ -65,7 +65,7 @@ export default function ChatBot() {
             }, {
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer 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`
+                    'Authorization': `Bearer `
                 }
             });
 

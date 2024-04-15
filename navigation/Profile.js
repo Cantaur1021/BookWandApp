@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import { collection, getDocs } from 'firebase/firestore';
+import React, { useEffect, useState } from 'react';
 import {
   StyleSheet,
   SafeAreaView,
@@ -8,25 +9,63 @@ import {
   TouchableOpacity,
   Switch,
   Image,
+  FlatList,
   Dimensions,
 } from 'react-native';
+import { db } from '../firebaseConfig';
 
 const windowWidth = Dimensions.get('window').width;
 
 export default function Profile() {
+
+
   const [form, setForm] = useState({
     emailNotifications: true,
     pushNotifications: false,
   });
 
+  const [borrowedBooks, setBorrowedBook] = useState([])
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const docSnap = await getDocs(collection(db, '/Users/user_id/borrowedBooks'))
+        let data = []
+        docSnap.forEach((doc) => {
+          data.push({
+            ...doc.data(),
+            id: doc.id
+          })
+        })
+        setBorrowedBook(data)
+        console.log("data is: ", data)
+      } catch (error) {
+        console.log(error)
+      }
+    }
+    fetchData()
+    const intervalID = setInterval(fetchData, 4000)
+    return () => clearInterval(intervalID)
+  }, []);
+
+  const renderBorrowedBook = ({ item }) => (
+    <View style={styles.bookItemContainer}>
+      <View style={styles.bookInfo}>
+        <Text style={styles.bookTitle}>{item.bookId}</Text>
+        <Text style={styles.bookAuthor}>Return Date: {item.returnDate}</Text>
+        <Text style={styles.bookAuthor}>Borrow Date: {item.borrowDate}</Text>
+      </View>
+    </View>
+  );
+
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#f8f8f8' }}>
+    <View style={{ flex: 1, backgroundColor: '#f8f8f8' }}>
       <View style={styles.container}>
         <View style={styles.header}>
           <Text style={[styles.headerTitle, { fontSize: 24, marginTop: 20 }]}>Profile</Text>
         </View>
 
-        <ScrollView contentContainerStyle={styles.content}>
+        <ScrollView style={styles.content}>
           <View style={[styles.section, { paddingTop: 4 }]}>
             <Text style={styles.sectionTitle}>User</Text>
 
@@ -38,7 +77,7 @@ export default function Profile() {
                 style={styles.profile}>
                 <Image
                   alt=""
-                  source={require('../assets/d8c55621-1c84-4405-8839-e813d8af4e53.jpg')} 
+                  source={require('../assets/d8c55621-1c84-4405-8839-e813d8af4e53.jpg')}
                   style={styles.profileAvatar} />
 
                 <View style={styles.profileBody}>
@@ -89,8 +128,13 @@ export default function Profile() {
 
           <View style={styles.section}>
             <Text style={[styles.sectionTitle, { fontSize: 20 }]}>Books Borrowed</Text>
-            {/* Empty area below for books borrowed */}
-            <View style={{ height: 100 }} />
+            <FlatList
+              data={borrowedBooks}
+              renderItem={renderBorrowedBook}
+              keyExtractor={item => item.id}
+
+              style={{ height: 200 }}
+            />
           </View>
 
           <View style={styles.section}>
@@ -118,7 +162,7 @@ export default function Profile() {
           <Text style={styles.contentFooter}></Text>
         </ScrollView>
       </View>
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -153,6 +197,25 @@ const styles = StyleSheet.create({
   section: {
     paddingVertical: 12,
   },
+  bookItemContainer: {
+    flexDirection: 'row',
+    padding: 20,
+    justifyContent: 'space-between',
+    alignItems: 'center',
+
+
+    borderBottomWidth: 1,
+
+    marginLeft: 5,
+    borderWidth: 1,
+    borderRadius: 9,
+    marginTop: 9,
+    borderColor: 'green',
+
+  },
+  bookInfo: {
+    flex: 1,
+  },
   sectionTitle: {
     marginLeft: 12,
     marginBottom: 8,
@@ -165,7 +228,7 @@ const styles = StyleSheet.create({
   },
   sectionBody: {
     borderRadius: 12,
-    
+
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
@@ -247,7 +310,7 @@ const styles = StyleSheet.create({
     borderBottomRightRadius: 12,
   },
   rowLabelLogout: {
-    
+
     width: '100%',
     textAlign: 'center',
     fontWeight: '600',
